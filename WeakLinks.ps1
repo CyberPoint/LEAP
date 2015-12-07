@@ -1,4 +1,4 @@
-﻿<#
+<#
 
 
 .SYNOPSIS
@@ -21,11 +21,296 @@ potentially aid a malicious attacker or user into gaining elevated privileges.
 insecure file with a trojanized file and gain elevated permissions.
 
 
-.SYNTAX
+.EXAMPLE
+.\Weaklinks.ps1 -Path C:\Users\User\AppData\Local\Temp\ -Include * -Recurse 
+
+PATH
+Specifies which folder to crawl for files that match the search criteria in order to discover possible vulnerabilities on the file system
+
+Important Note: Due to how Powershell passes path values, values should be tab-completed in the command-line and enclosed with double quotes (") to fully resolve.
+
+
+META
+File metadata values to match against in order to flag them for inspection (case insensitive string search)
+Metadata sections inspected are the following areas:
+    - Filename
+    - File Path
+    - All sections of the VersionInfo block of the file
+
+Default: "Microsoft"
+Disable Metasearch: "-META ANY" will act as a wild card to search all files and ignore any metadata
+Example: "-META JAVA" will search any file with JAVA listed in its VersionInfo, Path, or Filename
+
+
+INCLUDE
+Specifies which files by extension to search for in the location specified by the PATH parameter
+
+Default: By default this value will search "*.exe, *.dll, and *.sys" files
+Example: "-INCLUDE *" will include all files
+Example: "-INCLUDE *.dll" will search only DLL files
+
+Important Note: Due to how PowerShell parses array objects, in order to look for multiple files, the best way to perform searches against multiple file types simultaneously is to edit the default value of the INCLUDE parameter in the Param section below.  Otherwise search each file extension type individually.
+
+
+RECURSE
+This is a flag to crawl the PATH specified folder recursively (include all subfolders) or just limit searching to the folder specified by PATH.  By not including this value, the script will not crawl any sub directories.
+Default: Flag is not set, therefore no subdirectories are crawled by default
+Example: "-RECURSE" will set the flag value to true and search subfolders of the PATH
+
+
+IGNOREINFO
+Boolean flag to specify if the script should parse FileInfo / FileVersion blocks to search for META and to display their content.  This flag can be set in order to speed up the search process of files, or when the targeted files do not carry FileVersion Info, such as searching for vulnerable text based files (XML, INI, CONFIG, INF) etc.
+Example: "-IGNOREINFO" will disable file info META searching and displaying their content
+
+
+IGNORESIG
+Boolean flag to specify that the script ignore all file signature (codesignature) based checks.  
+This flag can be set in order to speed up the search process of files, target applications which have no code signing restrictions, or when the targeted files are not subjected to code signing, such as searching for vulnerable text based files (XML, INI, CONFIG, INF) etc
+Example: "-IGNORESIG" will disable code signing checks
+
+
+FULL
+Boolean flag to specify that the script look for files only with FULL ACCESS permissions based on the account specified by USER parameters.
+Default: If FULL, WRITE, and READ are all not specified the script will default to WRITE access
+Example: "-FULL" will search for files with FULL access (Read, Write, and Execute)
+
+
+WRITE
+Boolean flag to specify the the script look for files with WRITE access permissions based on the account specified by USER parameters
+Default: If FULL, WRITE, and READ are all not specified the script will default to WRITE access
+Example: "-WRITE" will search for files with WRITE access enabled
+
+
+READ
+Boolean flag to specify the the script look for files with READ access permissions based on the account specified by USER parameters
+Default: If FULL, WRITE, and READ are all not specified the script will default to WRITE access
+Example: "-READ" will search for files with READ access enabled
+
+
+FOLDERS
+Boolean flag to specify that the script look only at folders and not files.  Values specified by META are still taken into consideration with this flag in order to assist in searching for folders containing a specific string value.  
+
+This is particularly useful for looking for folders with improper or weak permissions enabled.
+
+By setting this flag, 'IGNORESIG' and 'IGNOREINFO' are enabled.
+
+Default: This value is set to false by default (file searching is default action)
+Example: "-FOLDERS" will set the script to search for Folders 
+
+USER
+The local account username or groupname in which to perform permission based checks (CACLS/ACL/DACLs) as.
+
+Default: This value is set to the current user account
+Example: "-USER USERS" will use the all users account / group on the system as perspective for ACL checks
+Example: "-USER SYSTEM" will use any SYSTEM based account as perspective for ACL checks
+Example: "-USER Administrator" will use the Administrator
 
 
 
 .EXAMPLE
+Powershell -ExecutionPolicy Bypass -File C:\tools\LEAP\WeakLinks.ps1 -PATH "C:\ProgramData" -RECURSE -META ANY
+
+Will search "C:\ProgramFiles\" and its subdirectories for any exe, dll, or sys file that meet the following requirements:
+
+No Code Signature OR Weak Code Signature (Expired, Incomplete chain, Invalid chain, Invalid signarures)
+AND
+Has WRITE access permissions from the CurrentUser or EVERYONE accounts
+
+Passed parameters:
+Scanning C:\ProgramData
+Recurse Directories: True
+Included Files: *.exe *.dll *.sys
+FileInfo Metadata Search: ANY
+Validate User Permissions Against: CurrentUser
+Flag Against Read Access: False
+Flag Against Write Access: True
+Flag Against Full Access: False
+Ignore Signatures: False
+Ignore File Info: False
+Inspect Folders: False
+
+==============================================================
+Example 2: Powershell -ExecutionPolicy Bypass -File C:\tools\LEAP\WeakLinks.ps1 -PATH "C:\ProgramData" -RECURSE -META ANY -INCLUDE *.INI -IGNORESIG -IGNOREINFO
+
+This will search for any INI file within "C:\ProgramData\" and its sub folders with WRITE access from the current user
+
+Scanning C:\ProgramData
+Recurse Directories: True
+Included Files: *.INI
+FileInfo Metadata Search: ANY
+Validate User Permissions Against: CurrentUser
+Flag Against Read Access: False
+Flag Against Write Access: True
+Flag Against Full Access: False
+Ignore Signatures: True
+Ignore File Info: True
+Inspect Folders: False
+
+==============================================================
+Example 3: Powershell -ExecutionPolicy Bypass -File C:\tools\LEAP\WeakLink2.ps1 -PATH "C:\ProgramData" -META Service -USER USERS -RECURSE -IGNORESIG -INCLUDE *.EXE
+
+Identify any EXE within "C:\ProgramData\" and its sub-folders that contain the word "Service" in its file information or path, and can be overwritten by USERS on the system and ignore any code signature protection in place
+
+
+Scanning C:\ProgramData
+Recurse Directories: True
+Included Files: *.EXE
+FileInfo Metadata Search: Service
+Validate User Permissions Against: USERS
+Flag Against Read Access: False
+Flag Against Write Access: True
+Flag Against Full Access: False
+Ignore Signatures: True
+Ignore File Info: False
+Inspect Folders: False
+
+==============================================================
+
+.OUTPUT
+
+Example: powershell -executionpolicy bypass -file C:\tools\LEAP\WeakLink.ps1 -PATH "C:\ProgramData" -META Service -USER USERS -RECURSE -IGNORESIG -INCLUDE *.EXE
+
+Scanning C:\ProgramData
+Recurse Directories: True
+Included Files: *.EXE
+FileInfo Metadata Search: Service
+Validate User Permissions Against: USERS
+Flag Against Read Access: False
+Flag Against Write Access: True
+Flag Against Full Access: False
+Ignore Signatures: True
+Ignore File Info: False
+Inspect Folders: False
+
+C:\ProgramData\NVIDIA Corporation\GeForce Experience\Update\GFExperience.NvStreamSrv\amd64\server\NvStreamNetworkService.exe
+
+File Information :
+
+FileVersionRaw     : 4.1.2014.398
+ProductVersionRaw  : 4.1.240.0
+Comments           :
+CompanyName        : NVIDIA Corporation
+FileBuildPart      : 2014
+*FileDescription    : NVIDIA Network Stream Service
+FileMajorPart      : 4
+FileMinorPart      : 1
+*FileName           : C:\ProgramData\NVIDIA Corporation\GeForce Experience\Update\GFExperience.NvStreamSrv\amd64\server\NvStreamNetworkService.exe
+FilePrivatePart    : 398
+FileVersion        : 4.1.2014.0398
+*InternalName       : NvStreamNetworkService
+IsDebug            : False
+IsPatched          : False
+IsPrivateBuild     : False
+IsPreRelease       : False
+IsSpecialBuild     : False
+Language           : English
+LegalCopyright     : (C) 2015 NVIDIA Corporation. All rights reserved.
+LegalTrademarks    :
+*OriginalFilename   : NvStreamNetworkService.exe
+PrivateBuild       :
+ProductBuildPart   : 240
+ProductMajorPart   : 4
+ProductMinorPart   : 1
+ProductName        : NVIDIA Streaming
+ProductPrivatePart : 0
+ProductVersion     : 4.1.0240.0
+SpecialBuild       :
+
+
+
+Weak ACL Permissions:
+
+Rights     : FullControl
+FullPath   : C:\ProgramData\NVIDIA Corporation\GeForce Experience\Update\GFExperience.NvStreamSrv\amd64\server\NvStreamNetworkService.exe
+Domain     : Everyone
+ID         :
+AccessType : Allow
+
+Note: * next to File Information indicates colored areas which matched against META parameter searches
+
+=============================================================
+
+Example2: powershell -executionpolicy bypass -file C:\tools\LEAP\WeakLink.ps1 -PATH "C:\ProgramData" -META ANY -USER USERS -RECURSE
+
+Scanning C:\ProgramData
+Recurse Directories: True
+Included Files: *.exe *.dll *.sys
+FileInfo Metadata Search: ANY
+Validate User Permissions Against: USERS
+Flag Against Read Access: False
+Flag Against Write Access: True
+Flag Against Full Access: False
+Ignore Signatures: False
+Ignore File Info: False
+Inspect Folders: False
+
+C:\ProgramData\NVIDIA Corporation\GeForce Experience\Update\GFExperience.NvStreamSrv\amd64\server\nvinject.dll
+
+File Information :
+
+FileVersionRaw     : 4.1.1997.4842
+ProductVersionRaw  : 4.1.240.0
+Comments           :
+CompanyName        : NVIDIA Corporation
+FileBuildPart      : 1997
+FileDescription    : NVIDIA nvinject
+FileMajorPart      : 4
+FileMinorPart      : 1
+FileName           : C:\ProgramData\NVIDIA Corporation\GeForce Experience\Update\GFExperience.NvStreamSrv\amd64\server\nvinject.dll
+FilePrivatePart    : 4842
+FileVersion        : 4.1.1997.4842
+InternalName       : nvinject
+IsDebug            : False
+IsPatched          : False
+IsPrivateBuild     : False
+IsPreRelease       : False
+IsSpecialBuild     : False
+Language           : English
+LegalCopyright     : (C) 2015 NVIDIA Corporation. All rights reserved.
+LegalTrademarks    :
+OriginalFilename   : nvinject.dll
+PrivateBuild       :
+ProductBuildPart   : 240
+ProductMajorPart   : 4
+ProductMinorPart   : 1
+ProductName        : NVIDIA Streamer
+ProductPrivatePart : 0
+ProductVersion     : 4.1.0240.0
+SpecialBuild       :
+
+
+Code Signature Status:
+[UnknownError]
+Authenticode Status Details: A certificate chain could not be built to a trusted root authority
+
+Authenticode Certificate Details:
+[Subject]
+  CN=NVIDIA Corporation PE Sign v2014
+
+[Issuer]
+  CN=NVIDIA Subordinate CA 2014, DC=nvidia, DC=com
+
+[Serial Number]
+  6130049C000000000003
+
+[Not Before]
+  7/14/2014 7:47:24 PM
+
+[Not After]
+  7/11/2016 1:40:28 PM
+
+[Thumbprint]
+  C5FD151381CA7F5EA982331EBC76D75613C8CCA7
+
+Weak ACL Permissions:
+
+Rights     : FullControl
+FullPath   : C:\ProgramData\NVIDIA Corporation\GeForce Experience\Update\GFExperience.NvStreamSrv\amd64\server\nvinject.dll
+Domain     : Everyone
+ID         :
+AccessType : Allow
+
+PS: Somebody you should probably look into this ;) just saying
 
 
 #>
@@ -119,11 +404,11 @@ Try
 {
     if (!($Folders))
     {
-        $Files = Get-ChildItem $Path -Include $Include -Recurse:$Recurse -Force -ErrorAction SilentlyContinue
+        $Files = Get-ChildItem $Path -Include $Include -Recurse:$Recurse -Force -ErrorAction SilentlyContinue | Where-Object{!($_.PSIsContainer)}
     }
     else
     {
-         $Files = Get-ChildItem $Path -Dir -Recurse:$Recurse -Force -ErrorAction SilentlyContinue
+         $Files = Get-ChildItem $Path -Dir -Recurse:$Recurse -Force -ErrorAction SilentlyContinue | Where-Object{($_.PSIsContainer)}
     }
 }
 Catch
@@ -139,6 +424,13 @@ ForEach($Item In $Files)
     $FileCount++
     $FileInfo = [string]::Empty
     
+    $FileLen = $File | measure-object -character | select -expandproperty characters 
+    
+    if ($FileLen -eq "0")
+    {
+        Write-Host "No Files Scanned"
+        Exit
+    }
 
     if ($MetaSearch)
     {
@@ -175,7 +467,7 @@ ForEach($Item In $Files)
         }
         $FileMatch = $FALSE
         $WeakACLs = [string]::Empty
-        Write-Verbose "Examing $File"
+        Write-Verbose "Inspecting $File"
 
         foreach($acl in $acls)
         {
