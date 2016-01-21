@@ -7,9 +7,8 @@
 ░ ░ ▒  ░ ░ ░  ░ ▒   ▒▒ ░░▒ ░     
   ░ ░      ░    ░   ▒   ░░       
     ░  ░   ░  ░     ░  ░         
-                                 
-                                 
-                                
+
+
 ## [L]ocal [E]levation [A]ttack [P]latform
 
 LEAP is a toolkit designed to aid in quickly gaining local elevated privileges  within in Microsoft Windows 7 - 10 environments against insecure applications through DLL Hijacking/Binary Planting/SideLoading methods.
