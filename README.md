@@ -16,7 +16,7 @@ LEAP is a toolkit designed to aid in quickly gaining local elevated privileges  
 The kit currently has three different modules to target three different type of LPE attack methods:
 
 [1] DragonPunch -> Race Condition Binary Planting Attacks
-[2] PathPoison -> Malicious User PATH Hijack
+[2] PathPoison -> Malicious User PATH Hijack + Brute Force Planting
 [3] WeakLinks -> Abuse Insecre Directory/File Permissions/CodeSigning 
 
 
